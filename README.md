@@ -12,9 +12,9 @@ Two-way HTTP webhook bridge between two isolated OpenClaw instances (e.g. **Koda
 ## 1) Install
 
 ```bash
-python3 -m venv .venv
+uv venv
 source .venv/bin/activate
-pip install -r requirements.txt
+uv sync
 cp .env.example .env
 ```
 
@@ -56,7 +56,7 @@ NONCE_TTL_SECONDS=600
 
 ```bash
 source .venv/bin/activate
-python bridge.py
+uv run bridge.py
 ```
 
 ## 4) Test
@@ -89,7 +89,7 @@ curl -X POST http://127.0.0.1:8092/relay/send \
 ```bash
 tmux new -s oc-bridge
 source .venv/bin/activate
-python bridge.py
+uv run bridge.py
 ```
 
 ## Optional: forward to OpenClaw chat/session
