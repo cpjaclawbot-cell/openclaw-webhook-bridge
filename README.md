@@ -109,6 +109,31 @@ Example stub script is included:
 
 Replace this with your own local integration (e.g., forwarding to a local OpenClaw session and returning the response text).
 
+
+### OpenClaw local-agent handler (recommended)
+
+To make `/relay/ask` call the local OpenClaw agent automatically:
+
+```env
+LOCAL_HANDLER_CMD=./scripts/handle_request_openclaw.sh
+LOCAL_AGENT_ID=main
+LOCAL_AGENT_TIMEOUT_SECONDS=45
+```
+
+Find available local agent IDs with:
+
+```bash
+openclaw agents list --json
+```
+
+Then test request/reply:
+
+```bash
+curl -X POST http://127.0.0.1:8091/relay/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"to_instance":"tubez","text":"Give me a one-line status"}'
+```
+
 ## Optional: tmux
 
 ```bash
