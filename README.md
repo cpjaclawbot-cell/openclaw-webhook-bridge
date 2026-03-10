@@ -5,7 +5,8 @@ Two-way HTTP webhook bridge between two isolated OpenClaw instances (e.g. **Koda
 ## What this does
 
 - Exposes `POST /relay/inbox` to receive authenticated messages
-- Exposes `POST /relay/send` to forward a message to the peer
+- Exposes `POST /relay/send` for fire-and-forget messages
+- Exposes `POST /relay/ask` for request/reply mode
 - Uses bearer token auth + timestamp + nonce replay protection
 - Uses `.env` for host/port/tokens/peer URL
 
@@ -33,6 +34,8 @@ OUTBOUND_TOKEN=token_for_tubez_inbox
 PEER_URL=http://127.0.0.1:8092
 MAX_SKEW_SECONDS=120
 NONCE_TTL_SECONDS=600
+REQUEST_TIMEOUT_SECONDS=20
+LOCAL_HANDLER_CMD=./scripts/handle_request.sh
 ```
 
 ### Instance B (Tubez)
@@ -48,6 +51,8 @@ OUTBOUND_TOKEN=token_for_koda_inbox
 PEER_URL=http://127.0.0.1:8091
 MAX_SKEW_SECONDS=120
 NONCE_TTL_SECONDS=600
+REQUEST_TIMEOUT_SECONDS=20
+LOCAL_HANDLER_CMD=./scripts/handle_request.sh
 ```
 
 > `OUTBOUND_TOKEN` on one side must equal `INBOUND_TOKEN` on the other side.
@@ -68,7 +73,7 @@ curl http://127.0.0.1:8091/health
 curl http://127.0.0.1:8092/health
 ```
 
-Send from Koda -> Tubez:
+Fire-and-forget message (Koda -> Tubez):
 
 ```bash
 curl -X POST http://127.0.0.1:8091/relay/send \
@@ -76,13 +81,33 @@ curl -X POST http://127.0.0.1:8091/relay/send \
   -d '{"to_instance":"tubez","text":"hello from koda"}'
 ```
 
-Send from Tubez -> Koda:
+Request/reply ask (Koda -> Tubez):
 
 ```bash
-curl -X POST http://127.0.0.1:8092/relay/send \
+curl -X POST http://127.0.0.1:8091/relay/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"to_instance":"tubez","text":"Summarise latest status"}'
+```
+
+Reverse ask (Tubez -> Koda):
+
+```bash
+curl -X POST http://127.0.0.1:8092/relay/ask \
   -H 'Content-Type: application/json' \
   -d '{"to_instance":"koda","text":"hello from tubez"}'
 ```
+
+## Local request handler
+
+`/relay/inbox` in `kind=request` mode calls `LOCAL_HANDLER_CMD` with one argument: the inbound text.
+
+Example stub script is included:
+
+```bash
+./scripts/handle_request.sh "test"
+```
+
+Replace this with your own local integration (e.g., forwarding to a local OpenClaw session and returning the response text).
 
 ## Optional: tmux
 
@@ -91,10 +116,6 @@ tmux new -s oc-bridge
 source .venv/bin/activate
 uv run bridge.py
 ```
-
-## Optional: forward to OpenClaw chat/session
-
-`/relay/inbox` currently returns ack payload. To auto-inject into a specific OpenClaw session/channel, add your local routing logic in `relay_inbox()`.
 
 ## Security notes
 
